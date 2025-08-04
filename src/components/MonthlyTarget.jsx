@@ -107,7 +107,7 @@ function MonthlyTarget() {
                 labelStyle={{ color: '#fff' }}
                 itemStyle={{ color: '#fff' }}
               />
-              <Legend wrapperStyle={{ color: '#ffffffdd', fontSize: 12 }} />
+              <Legend wrapperStyle={{ color: '#ffffffdd', fontSize: 15 }} />
               <Bar
                 dataKey="actual"
                 name="Actual Delivery"

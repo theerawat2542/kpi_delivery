@@ -1,29 +1,25 @@
 import React, { useState, useEffect } from "react";
-import {
-  PieChart,
-  Pie,
-  Cell,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
 
 const COLORS = ["#00C49F", "#FFBB28"]; // Completed / On process
 
 function DailyTarget() {
   const [data, setData] = useState([]);
   const [currentPage, setCurrentPage] = useState(0);
-  const itemsPerPage = 10;
+  const itemsPerPage = 5;
 
   const today = new Date();
   const formattedDate = today.toISOString().slice(0, 10);
 
   useEffect(() => {
     const url = `http://10.35.10.47:2007/api/HtcKpi/KpiDelivery/Delivery/ByModel?Plant=9771&StartDate=${formattedDate}&EndDate=${formattedDate}`;
-    // const url = `http://10.35.10.47:2007/api/HtcKpi/KpiDelivery/Delivery/ByModel?Plant=9771&StartDate=2025-07-22&EndDate=2025-07-22`;
+    // const url = `http://10.35.10.47:2007/api/HtcKpi/KpiDelivery/Delivery/ByModel?Plant=9771&StartDate=2025-07-29&EndDate=2025-07-29`;
     fetch(url)
       .then((res) => res.json())
       .then((json) => {
-        const filtered = json.filter((item) => item.target !== null && item.target !== undefined);
+        const filtered = json.filter(
+          (item) => item.target !== null && item.target !== undefined
+        );
         setData(filtered);
       })
       .catch((err) => console.error("Fetch error:", err));
@@ -48,18 +44,20 @@ function DailyTarget() {
     (sum, item) => sum + (item.actualDelivery || 0),
     0
   );
-  const totalTarget = data.reduce(
-    (sum, item) => sum + (item.target || 0),
-    0
-  );
+  const totalTarget = data.reduce((sum, item) => sum + (item.target || 0), 0);
   let completedPercent = totalTarget ? (totalActual / totalTarget) * 100 : 0;
-  if (completedPercent > 100) completedPercent = 100;
-  const onProcessPercent = 100 - completedPercent;
 
-  const chartData = [
-    { name: "Completed", value: completedPercent },
-    { name: "On process", value: onProcessPercent },
-  ];
+  let chartData;
+  if (completedPercent > 100) {
+    // ถ้าเกิน 100% ให้ Completed เต็ม 100% ไม่มี On process
+    chartData = [{ name: "Completed", value: 100 }];
+  } else {
+    const onProcessPercent = 100 - completedPercent;
+    chartData = [
+      { name: "Completed", value: completedPercent },
+      { name: "On process", value: onProcessPercent },
+    ];
+  }
 
   const handlePrev = () => {
     if (currentPage > 0) setCurrentPage(currentPage - 1);
@@ -70,12 +68,13 @@ function DailyTarget() {
   };
 
   return (
-    <div style={{ display: "flex", padding: "20px" }}>
+    <div style={{ display: "flex", padding: "15px 14px" }}>
       <div
         style={{
           width: "100%",
+          height: "88vh",
           background: "linear-gradient(145deg, #22334c, #1c273a)",
-          borderRadius: "12px",
+          borderRadius: "10px",
           padding: "15px",
           color: "#ffffff",
           fontFamily: "Segoe UI, sans-serif",
@@ -111,7 +110,10 @@ function DailyTarget() {
                 animationDuration={1000}
               >
                 {chartData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index]} />
+                  <Cell
+                    key={`cell-${index}`}
+                    fill={entry.name === "Completed" ? COLORS[0] : COLORS[1]}
+                  />
                 ))}
               </Pie>
               <Tooltip
@@ -209,7 +211,7 @@ function DailyTarget() {
             style={{
               width: "100%",
               borderCollapse: "collapse",
-              fontSize: "15px",
+              fontSize: "17px",
             }}
           >
             <thead>
@@ -228,18 +230,46 @@ function DailyTarget() {
             <tbody>
               {paginatedData.length === 0 ? (
                 <tr>
-                  <td colSpan="3" style={{ textAlign: "center", padding: "200px" }}>
+                  <td
+                    colSpan="3"
+                    style={{
+                      textAlign: "center",
+                      padding: "200px",
+                      fontSize: "18px",
+                    }}
+                  >
                     <h2>No data available</h2>
                   </td>
                 </tr>
               ) : (
-                paginatedData.map((item, idx) => (
-                  <tr key={idx} style={{ borderBottom: "1px solid #727374ff" }}>
-                    <td style={tdStyle}>{item.matDesc}</td>
-                    <td style={tdStyle}>{item.target ?? 0}</td>
-                    <td style={tdStyle}>{item.actualDelivery}</td>
-                  </tr>
-                ))
+                paginatedData.map((item, idx) => {
+                  const actual = Number(item.actualDelivery);
+                  const target = Number(item.target ?? 0);
+
+                  let fontColor = "#FFFFFF"; // default color
+                  if (target === 0) {
+                    fontColor = "#FFBB28";
+                  } else if (actual >= target) {
+                    fontColor = "#00C49F";
+                  }
+
+                  const rowStyle = {
+                    ...tdStyle,
+                    fontSize: "24px",
+                    color: fontColor,
+                  };
+
+                  return (
+                    <tr
+                      key={idx}
+                      style={{ borderBottom: "1px solid #727374ff" }}
+                    >
+                      <td style={rowStyle}>{item.matDesc}</td>
+                      <td style={rowStyle}>{target}</td>
+                      <td style={rowStyle}>{actual}</td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
@@ -279,7 +309,7 @@ const thStyle = {
 };
 
 const tdStyle = {
-  padding: "12px 12px",
+  padding: "12px 10px",
   color: "#ffffffcc",
 };
 
